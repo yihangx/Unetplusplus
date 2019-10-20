@@ -4,8 +4,15 @@ This is the implementation of Unet++ paper Using Keras. You can find the origina
 # U-Net: Convolutional Networks for Biomedical Image Segmentation
 To compare the performance and architecture, we also included U-Net code. You can find the original paper at [here](https://arxiv.org/pdf/1505.04597.pdf)
 
-## Prepare data and go to the root of data set folder
-We used "Find the nuclei in divergent images to advance medical discovery data set from 2018 Data Science Bowl [URL](https://www.kaggle.com/c/data-science-bowl-2018). Download all data set and extract it. At the root of data set folder you can run python code or jupyter notebook.
+## Prepare data
+We used "Find the nuclei in divergent images to advance medical discovery" data set from 2018 Data Science Bowl [URL](https://www.kaggle.com/c/data-science-bowl-2018). Download all data set and extract it. Again, extract both stage1_train and stage1_test.
+
+## Clone
+```
+git clone git@github.com:yihangx/BME590_Unetplusplus.git
+```
+
+## Change the data path either python code or Jupyter notebook file.
 
 ### Execute the code with python
 Execute
@@ -15,4 +22,3 @@ python3 unet++.py
 ```
 
 ### Execute the code with Jupyter notebook
-
