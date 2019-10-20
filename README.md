@@ -13,9 +13,12 @@ git clone git@github.com:yihangx/BME590_Unetplusplus.git
 ```
 
 ## Change the data path either python code or Jupyter notebook file.
+```
+TRAIN_PATH = './stage1_train/'
+TEST_PATH = './stage1_test/'
+```
 
 ### Execute the code with python
-Execute
 ```
 python3 unet.py
 python3 unet++.py
