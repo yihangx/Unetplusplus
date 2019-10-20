@@ -25,3 +25,8 @@ python3 unet++.py
 ```
 
 ### Execute the code with Jupyter notebook
+
+# Version
+tensorflow 2.0
+
+# License MIT
