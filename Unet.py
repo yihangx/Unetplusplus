@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 # Import Packages
 import os
 import sys
@@ -35,9 +41,15 @@ random.seed = seed
 np.random.seed = seed
 
 
+# In[2]:
+
+
 #Get ID
 train_ids = next(os.walk(TRAIN_PATH))[1]
 test_ids = next(os.walk(TEST_PATH))[1]
+
+
+# In[3]:
 
 
 # Get train images and masks
@@ -71,12 +83,32 @@ for n, id_ in tqdm(enumerate(test_ids), total=len(test_ids)):
     X_test[n] = img
 
 
+# In[4]:
+
+
 #Check train image and train mask
 ix = random.randint(0, len(train_ids))
 imshow(X_train[ix])
 plt.show()
 imshow(np.squeeze(Y_train[ix]))
 plt.show()
+
+
+# In[5]:
+
+
+test_X = X_train[603:]
+test_Y = Y_train[603:]
+
+
+# In[6]:
+
+
+X_train = X_train[0:603]
+Y_train = Y_train[0:603]
+
+
+# In[7]:
 
 
 #Define Intersection over Union (IoU)
@@ -102,56 +134,59 @@ def my_iou_metric(label, pred):
     return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0.5], tf.float64)
 
 
+# In[8]:
+
+
 #Build and train our neural network
 inputs = Input((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
 s = Lambda(lambda x: x / 255) (inputs)
 
 c1 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (s)
-c1 = Dropout(0.2) (c1)
+c1 = Dropout(0.1) (c1)
 c1 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c1)
 p1 = MaxPooling2D((2, 2)) (c1)
 
 c2 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p1)
-c2 = Dropout(0.2) (c2)
+c2 = Dropout(0.1) (c2)
 c2 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c2)
 p2 = MaxPooling2D((2, 2)) (c2)
 
 c3 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p2)
-c3 = Dropout(0.2) (c3)
+c3 = Dropout(0.1) (c3)
 c3 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c3)
 p3 = MaxPooling2D((2, 2)) (c3)
 
 c4 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p3)
-c4 = Dropout(0.2) (c4)
+c4 = Dropout(0.1) (c4)
 c4 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c4)
 p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
 
 c5 = Conv2D(512, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p4)
-c5 = Dropout(0.2) (c5)
+c5 = Dropout(0.1) (c5)
 c5 = Conv2D(512, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c5)
 
 u6 = Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same') (c5)
 u6 = concatenate([u6, c4])
 c6 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u6)
-c6 = Dropout(0.2) (c6)
+c6 = Dropout(0.1) (c6)
 c6 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c6)
 
 u7 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c6)
 u7 = concatenate([u7, c3])
 c7 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u7)
-c7 = Dropout(0.2) (c7)
+c7 = Dropout(0.1) (c7)
 c7 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c7)
 
 u8 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c7)
 u8 = concatenate([u8, c2])
 c8 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u8)
-c8 = Dropout(0.2) (c8)
+c8 = Dropout(0.1) (c8)
 c8 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c8)
 
 u9 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c8)
 u9 = concatenate([u9, c1], axis=3)
 c9 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u9)
-c9 = Dropout(0.2) (c9)
+c9 = Dropout(0.1) (c9)
 c9 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c9)
 
 outputs = Conv2D(1, (1, 1), activation='sigmoid') (c9)
@@ -161,28 +196,44 @@ model.compile(optimizer='adam', loss='binary_crossentropy',metrics=[my_iou_metri
 model.summary()
 
 
+# In[9]:
+
+
 #Fit model
 earlystopper = EarlyStopping(patience=10, verbose=1)
 checkpointer = ModelCheckpoint('Unet.h5', verbose=1, save_best_only=True)
-results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=16, epochs=100, 
+results = model.fit(X_train, Y_train, batch_size=16, epochs=50, 
                     callbacks=[earlystopper, checkpointer])
 
 
-# Predict on train, validation and test
+# In[10]:
+
+
+# Predict on train and test
 model = load_model('Unet.h5', custom_objects={'my_iou_metric': my_iou_metric})
-preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)
-preds_val = model.predict(X_train[int(X_train.shape[0]*0.9):], verbose=1)
+preds_train = model.predict(X_train, verbose=1)
 preds_test = model.predict(X_test, verbose=1)
 
 preds_train_t = (preds_train > 0.5).astype(np.uint8)
-preds_val_t = (preds_val > 0.5).astype(np.uint8)
 preds_test_t = (preds_test > 0.5).astype(np.uint8)
 
-preds_test_upsampled = []
-for i in range(len(preds_test)):
-    preds_test_upsampled.append(resize(np.squeeze(preds_test[i]), 
-                                       (sizes_test[i][0], sizes_test[i][1]), 
-                                       mode='constant', preserve_range=True))
+
+# In[11]:
+
+
+preds_test_in_train = model.predict(test_X, verbose=1)
+preds_test_t_in_train = (preds_test_in_train > 0.5).astype(np.uint8)
+
+
+# In[12]:
+
+
+m = tf.keras.metrics.MeanIoU(num_classes=2)
+m.update_state(preds_test_t_in_train, test_Y)
+print('Unet Final result on test set: ', m.result().numpy()) 
+
+
+# In[13]:
 
 
 #Check train
@@ -195,14 +246,7 @@ imshow(np.squeeze(preds_train_t[ix]),cmap = 'gray')
 plt.show()
 
 
-#Check validation
-ix = 20
-imshow(X_train[int(X_train.shape[0]*0.9):][ix])
-plt.show()
-imshow(np.squeeze(Y_train[int(Y_train.shape[0]*0.9):][ix]))
-plt.show()
-imshow(np.squeeze(preds_val_t[ix]),cmap = 'gray')
-plt.show()
+# In[14]:
 
 
 #Check test
@@ -213,6 +257,9 @@ imshow(np.squeeze(preds_test_t[ix]),cmap = 'gray')
 plt.show()
 
 
+# In[15]:
+
+
 #Check test
 ix = 12
 imshow(X_test[ix])
@@ -221,9 +268,13 @@ imshow(np.squeeze(preds_test_t[ix]),cmap = 'gray')
 plt.show()
 
 
+# In[16]:
+
+
 #Check test
 ix = 13
 imshow(X_test[ix])
 plt.show()
 imshow(np.squeeze(preds_test_t[ix]),cmap = 'gray')
 plt.show()
+

@@ -1,4 +1,10 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 # # BME590 Unet++
+
+# In[1]:
+
 
 # Import Packages
 import os
@@ -37,9 +43,15 @@ random.seed = seed
 np.random.seed = seed
 
 
+# In[2]:
+
+
 #Get Image ID
 train_ids = next(os.walk(TRAIN_PATH))[1]
 test_ids = next(os.walk(TEST_PATH))[1]
+
+
+# In[3]:
 
 
 # Get train images and masks
@@ -72,12 +84,32 @@ for n, id_ in tqdm(enumerate(test_ids), total=len(test_ids)):
     X_test[n] = img
 
 
+# In[4]:
+
+
 #Check train image and train mask
 ix = random.randint(0, len(train_ids))
 imshow(X_train[ix])
 plt.show()
 imshow(np.squeeze(Y_train[ix]))
 plt.show()
+
+
+# In[5]:
+
+
+test_X = X_train[0:67]
+test_Y = Y_train[0:67]
+
+
+# In[6]:
+
+
+X_train = X_train[67:]
+Y_train = Y_train[67:]
+
+
+# In[7]:
 
 
 #Define Intersection over Union (IoU)
@@ -103,6 +135,9 @@ def my_iou_metric(label, pred):
     return tf.compat.v1.py_func(get_iou_vector, [label, pred > 0.5], tf.float64)
 
 
+# In[8]:
+
+
 #Define BC Dice Loss Function
 def dice_coef(y_true, y_pred):
     y_true_f = K.flatten(K.cast(y_true, 'float32'))
@@ -114,8 +149,11 @@ def bc_dice_loss(y_true, y_pred):
     return 0.5 * tf.python.keras.losses.binary_crossentropy(y_true, y_pred) - dice_coef(y_true, y_pred)
 
 
+# In[9]:
+
+
 #Set parameters
-dropout_rate = 0.2
+dropout_rate = 0.1
 activation = "elu"
 def conv_block(input_tensor, num_of_channels, kernel_size=3):
     x = Conv2D(num_of_channels, (kernel_size, kernel_size), activation=activation, kernel_initializer = 'he_normal', padding='same' )(input_tensor)
@@ -125,17 +163,20 @@ def conv_block(input_tensor, num_of_channels, kernel_size=3):
     return x
 
 
+# In[10]:
+
+
 #Build and train our neural network
 inputs = Input((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
 s = Lambda(lambda x: x / 255) (inputs)
 
 c1 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (s)
-c1 = Dropout(0.2) (c1)
+c1 = Dropout(0.1) (c1)
 c1 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c1)
 p1 = MaxPooling2D((2, 2)) (c1)
 
 c2 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p1)
-c2 = Dropout(0.2) (c2)
+c2 = Dropout(0.1) (c2)
 c2 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c2)
 p2 = MaxPooling2D((2, 2)) (c2)
 
@@ -144,7 +185,7 @@ conv1_2 = concatenate([up1_2,c1],axis=3)
 conv1_2 = conv_block(conv1_2, num_of_channels=32)
 
 c3 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p2)
-c3 = Dropout(0.2) (c3)
+c3 = Dropout(0.1) (c3)
 c3 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c3)
 p3 = MaxPooling2D((2, 2)) (c3)
 
@@ -157,7 +198,7 @@ conv1_3 = concatenate([up1_3, c1, conv1_2], axis=3)
 conv1_3 = conv_block(conv1_3, num_of_channels=32)
 
 c4 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p3)
-c4 = Dropout(0.2) (c4)
+c4 = Dropout(0.1) (c4)
 c4 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c4)
 p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
 
@@ -174,7 +215,7 @@ conv1_4 = concatenate([up1_4, c1, conv1_2, conv1_3], axis=3)
 conv1_4 = conv_block(conv1_4, num_of_channels=32)
 
 c5 = Conv2D(512, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p4)
-c5 = Dropout(0.2) (c5)
+c5 = Dropout(0.1) (c5)
 c5 = Conv2D(512, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c5)
 
 up4_2 = Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(c5)
@@ -201,28 +242,44 @@ model.compile(optimizer='adam', loss=bc_dice_loss,metrics=[my_iou_metric],lr = 3
 model.summary()
 
 
+# In[11]:
+
+
 #Fit model
 earlystopper = EarlyStopping(patience=10, verbose=1)
 checkpointer = ModelCheckpoint('Unet++.h5', verbose=1, save_best_only=True)
-results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=16, epochs=100, 
+results = model.fit(X_train, Y_train, batch_size=16, epochs=50, 
                     callbacks=[earlystopper, checkpointer])
 
 
-# Predict on train, validation and test
+# In[12]:
+
+
+# Predict on train, and test
 model = load_model('Unet++.h5', custom_objects={'my_iou_metric': my_iou_metric,'bc_dice_loss':bc_dice_loss})
-preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)
-preds_val = model.predict(X_train[int(X_train.shape[0]*0.9):], verbose=1)
+preds_train = model.predict(X_train, verbose=1)
 preds_test = model.predict(X_test, verbose=1)
 
 preds_train_t = (preds_train > 0.5).astype(np.uint8)
-preds_val_t = (preds_val > 0.5).astype(np.uint8)
 preds_test_t = (preds_test > 0.5).astype(np.uint8)
 
-preds_test_upsampled = []
-for i in range(len(preds_test)):
-    preds_test_upsampled.append(resize(np.squeeze(preds_test[i]), 
-                                       (sizes_test[i][0], sizes_test[i][1]), 
-                                       mode='constant', preserve_range=True))
+
+# In[13]:
+
+
+preds_test_in_train = model.predict(test_X, verbose=1)
+preds_test_t_in_train = (preds_test_in_train > 0.5).astype(np.uint8)
+
+
+# In[14]:
+
+
+m = tf.keras.metrics.MeanIoU(num_classes=2)
+m.update_state(preds_test_t_in_train, test_Y)
+print('Unet++ Final result on test set: ', m.result().numpy()) 
+
+
+# In[15]:
 
 
 #Check train
@@ -235,14 +292,7 @@ imshow(np.squeeze(preds_train_t[ix]),cmap = 'gray')
 plt.show()
 
 
-#Check validation
-ix = 20
-imshow(X_train[int(X_train.shape[0]*0.9):][ix])
-plt.show()
-imshow(np.squeeze(Y_train[int(Y_train.shape[0]*0.9):][ix]))
-plt.show()
-imshow(np.squeeze(preds_val_t[ix]),cmap = 'gray')
-plt.show()
+# In[16]:
 
 
 #Check test
@@ -253,6 +303,9 @@ imshow(np.squeeze(preds_test_t[ix]),cmap = 'gray')
 plt.show()
 
 
+# In[17]:
+
+
 #Check test
 ix = 12
 imshow(X_test[ix])
@@ -261,9 +314,15 @@ imshow(np.squeeze(preds_test_t[ix]),cmap = 'gray')
 plt.show()
 
 
+# In[18]:
+
+
 #Check test
 ix = 13
 imshow(X_test[ix])
 plt.show()
 imshow(np.squeeze(preds_test_t[ix]),cmap = 'gray')
 plt.show()
+
+
+# Since the original test set in the dataset has no mask, we cannot calculate the iou. I use 10% data in train set to calculate the iou, and I use real data in test set to plot these figures.
